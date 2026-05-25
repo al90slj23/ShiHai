@@ -1,0 +1,35 @@
+# OS/editor
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Python / Node / runtime
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+.env
+.env.*
+!.env.example
+
+# Runtime databases and rebuildable indexes
+*.sqlite-wal
+*.sqlite-shm
+*.db-wal
+*.db-shm
+runtime/
+**/06_Index/vector/
+**/06_Index/graph/
+**/06_Index/fulltext/
+
+# Private digital-self instances.
+# Keep examples in examples/ instead.
+selves/*
+!selves/.gitkeep

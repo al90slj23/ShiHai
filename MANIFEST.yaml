@@ -1,0 +1,27 @@
+name: ShiHai
+chinese_name: 识海
+version: 0.1.0
+status: scaffold
+summary: Open personal memory framework for digital selves.
+
+principles:
+  - raw_data_is_never_overwritten
+  - ai_summaries_must_link_to_sources
+  - important_identity_memory_requires_review
+  - indexes_are_rebuildable
+  - canonical_memory_uses_open_formats
+  - agents_are_clients_not_owners
+
+canonical_paths:
+  framework_docs: docs
+  schemas: schemas
+  templates: templates
+  tools: tools
+  workflows: workflows
+  protocols: protocols
+  agents: agents
+  selves: selves
+
+privacy:
+  default_self_data_gitignored: true
+  sensitive_memory_requires_review: true

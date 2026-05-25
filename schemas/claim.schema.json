@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ShiHai Claim",
+  "type": "object",
+  "required": [
+    "id",
+    "claim",
+    "type",
+    "confidence",
+    "status",
+    "created_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "claim": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    },
+    "source_events": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "status": {
+      "type": "string"
+    },
+    "needs_review": {
+      "type": "boolean"
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    }
+  }
+}

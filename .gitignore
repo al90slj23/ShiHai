@@ -33,3 +33,6 @@ runtime/
 # Keep examples in examples/ instead.
 selves/*
 !selves/.gitkeep
+
+# Local reference checkout of ZERO framework; do not vendor into ShiHai.
+ZERO/

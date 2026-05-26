@@ -3,6 +3,34 @@
 > **识海**：面向数字自我的开放个人记忆框架。  
 > 它不是一个笔记软件，也不是某个 Agent 的附属记忆；它试图成为一个人长期数字化存在的底层记忆工程。
 
+> **ShiHai** — *The ocean of consciousness and memory for digital selves.*  
+> An open personal memory substrate that helps AI agents remember a person across time, tools, devices, and models.
+
+---
+
+## English positioning
+
+**ShiHai** is pronounced roughly as **“shih-high”**. It comes from the Chinese word **识海**, literally meaning **“the ocean of consciousness / the sea of knowing.”**
+
+In Chinese, **识** means consciousness, cognition, awareness, memory, and knowing. **海** means ocean. Together, **识海** points to a deep inner ocean where experiences, relationships, knowledge, emotions, decisions, and identity traces are accumulated.
+
+ShiHai is not just a knowledge base. It is a proposed **personal memory substrate** for digital selves:
+
+> **Not a notes app. Not an agent memory plugin. Not a vector database.  
+> ShiHai is the long-term memory layer beneath all of them.**
+
+### Suggested slogans
+
+- **ShiHai — The memory ocean for your digital self.**
+- **ShiHai — Open memory infrastructure for digital selves.**
+- **ShiHai — A personal memory substrate for humans and agents.**
+- **ShiHai — Where your digital self begins to remember.**
+- **ShiHai — Own your memory. Grow your digital self.**
+
+### One-line description
+
+> **ShiHai is an open, local-first personal memory framework for building digital selves that can be remembered, searched, reasoned over, and shared safely across AI agents.**
+
 ---
 
 ## 一、项目简介

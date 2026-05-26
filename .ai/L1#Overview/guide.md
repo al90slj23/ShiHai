@@ -18,11 +18,13 @@ ShiHai/                  # 通用框架、协议、规范、模板、工具
 └── selves/<SelfName>/   # 具体数字自我实例
 ```
 
-当前个人实例：
+当前实例：
 
 ```text
 selves/LikeHeng/
 ```
+
+**LikeHeng 是 ShiHai 的第一个原型实验 self / reference self / dogfood instance。** ShiHai 的框架规范不是脱离真实使用闭门设计，而是在 LikeHeng 的个人数字记忆建设过程中持续验证、迭代和抽象：录音、聊天、人物关系、Agent 协作、Obsidian、人类复盘、隐私边界、备份迁移等真实场景都优先在 LikeHeng 中试验，再将稳定部分沉淀为通用 schema、protocol、workflow、template 和 agent adapter。
 
 该实例包含 LikeHeng 的原始经历、处理文本、结构化记忆、知识档案、Obsidian、人际关系、偏好、决策和 Agent 上下文。私有 self 数据默认不进入开源仓库。
 

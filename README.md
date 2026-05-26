@@ -165,7 +165,17 @@ ShiHai/                  # 通用框架层
 selves/LikeHeng/
 ```
 
-但该目录默认被 `.gitignore` 忽略，不会上传到开源仓库。
+**LikeHeng 是 ShiHai 的第一个原型实验 self。**  
+ShiHai 不是先在抽象中闭门设计完再交给用户使用，而是以 LikeHeng 的真实长期数字记忆建设过程作为第一现场：在录音、聊天、人物关系、项目决策、Agent 协作、Obsidian、人类复盘和隐私边界的真实使用中，不断验证、修正和抽象出可复用的框架规范。
+
+换句话说：
+
+```text
+LikeHeng = 原型实验场 / reference self / dogfood instance
+ShiHai   = 从 LikeHeng 实践中持续抽象出来的通用框架
+```
+
+但该目录默认被 `.gitignore` 忽略，不会上传到开源仓库。未来公开仓库只保留从 LikeHeng 实践中提炼出的通用 schema、protocol、workflow、template、agent adapter 和脱敏 example。
 
 ### 通用框架层
 

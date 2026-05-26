@@ -226,6 +226,24 @@ selves/<SelfName>/
 
 但它们不是 ShiHai 的中心。
 
+当前已经提供两个本地接口层：
+
+```bash
+# File Protocol CLI：直接读写 selves/<SelfName>/ 文件
+python3 tools/shihai_memory.py --root /path/to/ShiHai get-context --self LikeHeng
+
+# MCP stdio server：给 Hermes / OpenClaw 等 Agent 暴露工具
+python3 tools/shihai_mcp_server.py --root /path/to/ShiHai
+```
+
+当前 MCP server 暴露的第一批工具：
+
+```text
+shihai_get_context
+shihai_add_event
+shihai_propose_memory
+```
+
 未来的理想关系是：
 
 ```text

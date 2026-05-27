@@ -160,9 +160,42 @@ Approving a proposal also marks its review queue item as:
 }
 ```
 
+### `shihai_search_memory`
+
+Search ShiHai events, canonical claims, and memory proposals by keyword and filters.
+
+Required arguments:
+
+```json
+{
+  "self": "LikeHeng"
+}
+```
+
+Optional arguments:
+
+```json
+{
+  "query": "搜索记忆",
+  "kind": "event",
+  "source_ref": "session-or-message-id",
+  "limit": 20
+}
+```
+
+`kind` may be one of:
+
+```text
+event
+claim
+proposal
+```
+
+Returns normalized search results with `kind`, `id`, `type`, `status`,
+`source_ref`, `created_at`, `text`, `path`, and the original `record`.
+
 ## Future tools
 
-- `shihai_search_memory`
 - `shihai_get_person`
 - `shihai_export_context_pack`
 

@@ -45,6 +45,7 @@ class ShihaiMcpServerTest(unittest.TestCase):
                     "shihai_propose_memory",
                     "shihai_list_pending_reviews",
                     "shihai_approve_memory",
+                    "shihai_search_memory",
                 },
                 tool_names,
             )
@@ -201,6 +202,59 @@ class ShihaiMcpServerTest(unittest.TestCase):
             self.assertTrue(approved["ok"])
             self.assertEqual(approved["record"]["source_proposal_id"], proposal_id)
             self.assertEqual(approved["record"]["approved_by"], "LikeHeng")
+
+    def test_tool_call_search_memory_returns_matching_records(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp_root = Path(td)
+            subprocess.run(
+                [sys.executable, str(ROOT / "tools" / "shihai_memory.py"), "--root", str(tmp_root), "init-self", "TestSelf"],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "tools" / "shihai_memory.py"),
+                    "--root", str(tmp_root),
+                    "add-event",
+                    "--self", "TestSelf",
+                    "--type", "conversation",
+                    "--summary", "MCP 搜索记忆事件",
+                    "--source-agent", "hermes",
+                    "--source-ref", "mcp-search-test",
+                    "--created-at", "2026-05-26T08:00:00+08:00",
+                ],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            result = self.run_mcp_session(
+                tmp_root,
+                [
+                    {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 2,
+                        "method": "tools/call",
+                        "params": {
+                            "name": "shihai_search_memory",
+                            "arguments": {"self": "TestSelf", "query": "搜索记忆", "kind": "event"},
+                        },
+                    },
+                ],
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            responses = self.read_json_lines(result.stdout)
+            call_response = next(item for item in responses if item.get("id") == 2)
+            payload = json.loads(call_response["result"]["content"][0]["text"])
+            self.assertEqual(payload["count"], 1)
+            self.assertEqual(payload["items"][0]["kind"], "event")
+            self.assertEqual(payload["items"][0]["source_ref"], "mcp-search-test")
 
 
 if __name__ == "__main__":

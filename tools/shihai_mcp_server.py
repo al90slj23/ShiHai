@@ -93,6 +93,22 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         },
     },
     {
+        "name": "shihai_search_memory",
+        "description": "Search ShiHai events, canonical claims, and memory proposals.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "self": {"type": "string"},
+                "query": {"type": "string"},
+                "kind": {"type": "string", "enum": ["event", "claim", "proposal"]},
+                "source_ref": {"type": "string"},
+                "limit": {"type": "number"},
+            },
+            "required": ["self"],
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "shihai_approve_memory",
         "description": "Approve a pending memory proposal into canonical claims.",
         "inputSchema": {
@@ -125,6 +141,7 @@ class ShihaiMcpServer:
             "shihai_add_event": self.tool_add_event,
             "shihai_propose_memory": self.tool_propose_memory,
             "shihai_list_pending_reviews": self.tool_list_pending_reviews,
+            "shihai_search_memory": self.tool_search_memory,
             "shihai_approve_memory": self.tool_approve_memory,
         }
 
@@ -228,6 +245,18 @@ class ShihaiMcpServer:
         require(arguments, "self")
         args = SimpleNamespace(root=self.root, self_name=arguments["self"])
         return capture_stdout(shihai_memory.list_pending_reviews, args).strip()
+
+    def tool_search_memory(self, arguments: dict[str, Any]) -> str:
+        require(arguments, "self")
+        args = SimpleNamespace(
+            root=self.root,
+            self_name=arguments["self"],
+            query=arguments.get("query", ""),
+            kind=arguments.get("kind"),
+            source_ref=arguments.get("source_ref"),
+            limit=int(arguments.get("limit", 20)),
+        )
+        return capture_stdout(shihai_memory.search_memory, args).strip()
 
     def tool_approve_memory(self, arguments: dict[str, Any]) -> str:
         require(arguments, "self", "proposal_id", "approved_by")

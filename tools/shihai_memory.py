@@ -67,6 +67,24 @@ def claims_file_for_type(base: Path, claim_type: str) -> Path:
     return base / "03_Canonical/claims/facts.jsonl"
 
 
+def record_text(kind: str, record: dict) -> str:
+    if kind == "event":
+        return str(record.get("summary") or record.get("title") or "")
+    return str(record.get("claim") or "")
+
+
+def iter_memory_records(base: Path):
+    for path in sorted((base / "03_Canonical/events").glob("**/*.jsonl")):
+        for record in read_jsonl(path):
+            yield "event", path, record
+    for path in sorted((base / "03_Canonical/claims").glob("*.jsonl")):
+        for record in read_jsonl(path):
+            yield "claim", path, record
+    pending_path = base / "03_Canonical/review_queue/pending_memory.jsonl"
+    for record in read_jsonl(pending_path):
+        yield "proposal", pending_path, record
+
+
 def init_self(args: argparse.Namespace) -> int:
     base = self_root(args.root, args.name)
     dirs = [
@@ -197,6 +215,38 @@ def list_pending_reviews(args: argparse.Namespace) -> int:
     return 0
 
 
+def search_memory(args: argparse.Namespace) -> int:
+    base = self_root(args.root, args.self_name)
+    query = (args.query or "").casefold()
+    results = []
+    for kind, path, record in iter_memory_records(base):
+        if args.kind and kind != args.kind:
+            continue
+        if args.source_ref and record.get("source_ref") != args.source_ref:
+            continue
+        text = record_text(kind, record)
+        searchable = json.dumps(record, ensure_ascii=False).casefold()
+        if query and query not in searchable:
+            continue
+        results.append(
+            {
+                "kind": kind,
+                "id": record.get("id"),
+                "type": record.get("type"),
+                "status": record.get("status"),
+                "source_ref": record.get("source_ref"),
+                "created_at": record.get("created_at") or record.get("time_start"),
+                "text": text,
+                "path": str(path),
+                "record": record,
+            }
+        )
+        if len(results) >= args.limit:
+            break
+    print(json.dumps({"ok": True, "count": len(results), "items": results}, ensure_ascii=False))
+    return 0
+
+
 def approve_memory(args: argparse.Namespace) -> int:
     created = parse_time(args.created_at)
     base = self_root(args.root, args.self_name)
@@ -303,6 +353,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_list = sub.add_parser("list-pending-reviews", help="List pending memory proposals")
     p_list.add_argument("--self", dest="self_name", required=True)
     p_list.set_defaults(func=list_pending_reviews)
+
+    p_search = sub.add_parser("search-memory", help="Search events, claims, and memory proposals")
+    p_search.add_argument("--self", dest="self_name", required=True)
+    p_search.add_argument("--query", default="")
+    p_search.add_argument("--kind", choices=["event", "claim", "proposal"])
+    p_search.add_argument("--source-ref")
+    p_search.add_argument("--limit", type=int, default=20)
+    p_search.set_defaults(func=search_memory)
 
     p_approve = sub.add_parser("approve-memory", help="Approve a pending memory proposal into canonical claims")
     p_approve.add_argument("--self", dest="self_name", required=True)

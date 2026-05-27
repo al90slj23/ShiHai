@@ -135,6 +135,93 @@ class ShihaiMemoryCliTest(unittest.TestCase):
             self.assertEqual(payload["items"][0]["claim"], "用户希望通过持续对话沉淀个人记忆")
             self.assertEqual(payload["items"][0]["status"], "pending")
 
+    def test_search_memory_finds_events_claims_and_pending_by_keyword(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp_path = Path(td)
+            self.run_cli(tmp_path, "init-self", "TestSelf")
+            self.run_cli(
+                tmp_path,
+                "add-event",
+                "--self", "TestSelf",
+                "--type", "conversation",
+                "--summary", "讨论 ShiHai 的搜索记忆能力",
+                "--source-agent", "hermes",
+                "--source-ref", "search-session",
+                "--created-at", "2026-05-26T08:00:00+08:00",
+            )
+            proposal = self.run_cli(
+                tmp_path,
+                "propose-memory",
+                "--self", "TestSelf",
+                "--claim", "用户希望 ShiHai 支持搜索记忆",
+                "--claim-type", "preference",
+                "--source-agent", "hermes",
+                "--source-ref", "search-session",
+                "--created-at", "2026-05-26T08:05:00+08:00",
+            )
+            proposal_id = json.loads(proposal.stdout)["record"]["id"]
+            self.run_cli(
+                tmp_path,
+                "approve-memory",
+                "--self", "TestSelf",
+                "--proposal-id", proposal_id,
+                "--approved-by", "LikeHeng",
+                "--created-at", "2026-05-26T08:10:00+08:00",
+            )
+
+            result = self.run_cli(tmp_path, "search-memory", "--self", "TestSelf", "--query", "搜索记忆")
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertTrue(payload["ok"])
+            self.assertGreaterEqual(payload["count"], 2)
+            kinds = {item["kind"] for item in payload["items"]}
+            self.assertIn("event", kinds)
+            self.assertIn("claim", kinds)
+            texts = "\n".join(item["text"] for item in payload["items"])
+            self.assertIn("讨论 ShiHai 的搜索记忆能力", texts)
+            self.assertIn("用户希望 ShiHai 支持搜索记忆", texts)
+
+    def test_search_memory_filters_by_kind_and_source_ref(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp_path = Path(td)
+            self.run_cli(tmp_path, "init-self", "TestSelf")
+            self.run_cli(
+                tmp_path,
+                "add-event",
+                "--self", "TestSelf",
+                "--type", "conversation",
+                "--summary", "目标会话里的搜索事件",
+                "--source-agent", "hermes",
+                "--source-ref", "target-session",
+                "--created-at", "2026-05-26T08:00:00+08:00",
+            )
+            self.run_cli(
+                tmp_path,
+                "add-event",
+                "--self", "TestSelf",
+                "--type", "conversation",
+                "--summary", "其他会话里的搜索事件",
+                "--source-agent", "hermes",
+                "--source-ref", "other-session",
+                "--created-at", "2026-05-26T08:01:00+08:00",
+            )
+
+            result = self.run_cli(
+                tmp_path,
+                "search-memory",
+                "--self", "TestSelf",
+                "--query", "搜索事件",
+                "--kind", "event",
+                "--source-ref", "target-session",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertEqual(payload["count"], 1)
+            self.assertEqual(payload["items"][0]["source_ref"], "target-session")
+            self.assertEqual(payload["items"][0]["text"], "目标会话里的搜索事件")
+
     def test_approve_memory_moves_pending_item_to_claims_and_marks_approved(self):
         with tempfile.TemporaryDirectory() as td:
             tmp_path = Path(td)

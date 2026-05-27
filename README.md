@@ -244,6 +244,7 @@ shihai_add_event
 shihai_propose_memory
 shihai_list_pending_reviews
 shihai_approve_memory
+shihai_search_memory
 ```
 
 未来的理想关系是：

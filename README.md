@@ -240,6 +240,7 @@ python3 tools/shihai_mcp_server.py --root /path/to/ShiHai
 
 ```text
 shihai_get_context
+shihai_add_conversation
 shihai_add_event
 shihai_propose_memory
 shihai_list_pending_reviews

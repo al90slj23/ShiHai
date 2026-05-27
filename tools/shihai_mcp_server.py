@@ -40,6 +40,23 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         },
     },
     {
+        "name": "shihai_add_conversation",
+        "description": "Append a raw conversation message to the immutable source archive.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "self": {"type": "string"},
+                "source_agent": {"type": "string"},
+                "source_ref": {"type": "string"},
+                "speaker": {"type": "string"},
+                "text": {"type": "string"},
+                "created_at": {"type": "string"},
+            },
+            "required": ["self", "source_agent", "source_ref", "speaker", "text"],
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "shihai_add_event",
         "description": "Append a canonical conversation/event record to a ShiHai self.",
         "inputSchema": {
@@ -138,6 +155,7 @@ class ShihaiMcpServer:
         self.root = root.resolve()
         self.tools: dict[str, Callable[[dict[str, Any]], str]] = {
             "shihai_get_context": self.tool_get_context,
+            "shihai_add_conversation": self.tool_add_conversation,
             "shihai_add_event": self.tool_add_event,
             "shihai_propose_memory": self.tool_propose_memory,
             "shihai_list_pending_reviews": self.tool_list_pending_reviews,
@@ -205,6 +223,19 @@ class ShihaiMcpServer:
         require(arguments, "self")
         args = SimpleNamespace(root=self.root, self_name=arguments["self"])
         return capture_stdout(shihai_memory.get_context, args)
+
+    def tool_add_conversation(self, arguments: dict[str, Any]) -> str:
+        require(arguments, "self", "source_agent", "source_ref", "speaker", "text")
+        args = SimpleNamespace(
+            root=self.root,
+            self_name=arguments["self"],
+            source_agent=arguments["source_agent"],
+            source_ref=arguments["source_ref"],
+            speaker=arguments["speaker"],
+            text=arguments["text"],
+            created_at=arguments.get("created_at"),
+        )
+        return capture_stdout(shihai_memory.add_conversation, args).strip()
 
     def tool_add_event(self, arguments: dict[str, Any]) -> str:
         require(arguments, "self", "type", "summary", "source_agent", "source_ref")

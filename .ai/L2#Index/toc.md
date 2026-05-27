@@ -26,6 +26,11 @@
   - Review queue
   - Provenance / confidence / privacy
 
+- `L3#Standards/standards/02.memory-02.conversation-architecture.md`
+  - Raw conversation source 与 canonical memory 分层
+  - 实时捕获 + 周期性纯化
+  - `01_Raw/conversations/` 与 `03_Canonical/` 的职责边界
+
 ### Agent 兼容
 
 - `L3#Standards/standards/03.agent-01.compatibility.md`

@@ -41,6 +41,7 @@ class ShihaiMcpServerTest(unittest.TestCase):
             self.assertEqual(
                 {
                     "shihai_get_context",
+                    "shihai_add_conversation",
                     "shihai_add_event",
                     "shihai_propose_memory",
                     "shihai_list_pending_reviews",
@@ -49,6 +50,50 @@ class ShihaiMcpServerTest(unittest.TestCase):
                 },
                 tool_names,
             )
+
+    def test_tool_call_add_conversation_writes_raw_log(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp_root = Path(td)
+            subprocess.run(
+                [sys.executable, str(ROOT / "tools" / "shihai_memory.py"), "--root", str(tmp_root), "init-self", "TestSelf"],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            result = self.run_mcp_session(
+                tmp_root,
+                [
+                    {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 2,
+                        "method": "tools/call",
+                        "params": {
+                            "name": "shihai_add_conversation",
+                            "arguments": {
+                                "self": "TestSelf",
+                                "source_agent": "hermes",
+                                "source_ref": "mcp-raw-session",
+                                "speaker": "user",
+                                "text": "每条对话先进入 raw log，再周期性纯化。",
+                                "created_at": "2026-05-26T09:00:00+08:00",
+                            },
+                        },
+                    },
+                ],
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            responses = self.read_json_lines(result.stdout)
+            call_response = next(item for item in responses if item.get("id") == 2)
+            self.assertFalse(call_response["result"].get("isError", False))
+            payload = json.loads(call_response["result"]["content"][0]["text"])
+            self.assertTrue(payload["ok"])
+            self.assertEqual(payload["record"]["source_ref"], "mcp-raw-session")
+            self.assertEqual(payload["record"]["text"], "每条对话先进入 raw log，再周期性纯化。")
+            self.assertTrue(Path(payload["path"]).is_file())
 
     def test_tool_call_add_event_writes_canonical_event_and_returns_payload(self):
         with tempfile.TemporaryDirectory() as td:

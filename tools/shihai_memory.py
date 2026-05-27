@@ -8,7 +8,9 @@ services or databases.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -36,6 +38,11 @@ def write_text_if_missing(path: Path, content: str) -> None:
 def touch_jsonl(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.touch(exist_ok=True)
+
+
+def safe_slug(value: str) -> str:
+    slug = re.sub(r"[^A-Za-z0-9._-]+", "-", value.strip()).strip("-._")
+    return slug[:120] or "conversation"
 
 
 def append_jsonl(path: Path, record: dict) -> None:
@@ -90,6 +97,8 @@ def init_self(args: argparse.Namespace) -> int:
     dirs = [
         "00_Inbox/conversations/hermes",
         "00_Inbox/conversations/openclaw",
+        "01_Raw/conversations/hermes",
+        "01_Raw/conversations/openclaw",
         "02_Processed/conversation_summaries",
         "02_Processed/extracted_insights",
         "02_Processed/purified_notes",
@@ -135,6 +144,27 @@ def init_self(args: argparse.Namespace) -> int:
         f"# {args.name} Agent Context Pack\n\nCurrent memory mode: conversation-first.\n",
     )
     print(json.dumps({"ok": True, "self": args.name, "path": str(base)}, ensure_ascii=False))
+    return 0
+
+
+def add_conversation(args: argparse.Namespace) -> int:
+    created = parse_time(args.created_at)
+    base = self_root(args.root, args.self_name)
+    text_digest = hashlib.sha256(args.text.encode("utf-8")).hexdigest()
+    record = {
+        "id": "msg_" + created.strftime("%Y%m%d_%H%M%S_") + uuid4().hex[:8],
+        "source_type": "conversation",
+        "source_agent": args.source_agent,
+        "source_ref": args.source_ref,
+        "speaker": args.speaker,
+        "text": args.text,
+        "sha256": text_digest,
+        "created_at": args.created_at or created.isoformat(timespec="seconds"),
+    }
+    raw_file = base / "01_Raw/conversations" / safe_slug(args.source_agent) / f"{safe_slug(args.source_ref)}.jsonl"
+    append_jsonl(raw_file, record)
+    log_agent_write(base, args.source_agent, "add-conversation", raw_file, f"raw conversation message {record['id']}", args.source_ref)
+    print(json.dumps({"ok": True, "path": str(raw_file), "record": record}, ensure_ascii=False))
     return 0
 
 
@@ -318,6 +348,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_init = sub.add_parser("init-self", help="Create a conversation-first self layout")
     p_init.add_argument("name")
     p_init.set_defaults(func=init_self)
+
+    p_conv = sub.add_parser("add-conversation", help="Append a raw conversation message")
+    p_conv.add_argument("--self", dest="self_name", required=True)
+    p_conv.add_argument("--source-agent", required=True)
+    p_conv.add_argument("--source-ref", required=True)
+    p_conv.add_argument("--speaker", required=True)
+    p_conv.add_argument("--text", required=True)
+    p_conv.add_argument("--created-at")
+    p_conv.set_defaults(func=add_conversation)
 
     p_event = sub.add_parser("add-event", help="Append an event record")
     p_event.add_argument("--self", dest="self_name", required=True)

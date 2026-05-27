@@ -25,10 +25,43 @@ class ShihaiMemoryCliTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             self_root = tmp_path / "selves" / "TestSelf"
+            self.assertTrue((self_root / "00_Inbox" / "conversations" / "hermes").is_dir())
+            self.assertTrue((self_root / "01_Raw" / "conversations" / "hermes").is_dir())
+            self.assertTrue((self_root / "02_Processed" / "conversation_summaries").is_dir())
             self.assertTrue((self_root / "03_Canonical" / "events").is_dir())
             self.assertTrue((self_root / "03_Canonical" / "claims" / "facts.jsonl").is_file())
             self.assertTrue((self_root / "03_Canonical" / "review_queue" / "pending_memory.jsonl").is_file())
             self.assertTrue((self_root / "07_Agents" / "shared_context" / "conversation_memory_workflow.md").is_file())
+
+    def test_add_conversation_appends_raw_log_with_digest_and_source_ref(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp_path = Path(td)
+            self.run_cli(tmp_path, "init-self", "TestSelf")
+
+            result = self.run_cli(
+                tmp_path,
+                "add-conversation",
+                "--self", "TestSelf",
+                "--source-agent", "hermes",
+                "--source-ref", "wechat-session-1",
+                "--speaker", "user",
+                "--text", "原始对话应该完整保存，同时只把提炼版本写入长期记忆。",
+                "--created-at", "2026-05-26T08:00:00+08:00",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertTrue(payload["ok"])
+            self.assertEqual(payload["record"]["source_ref"], "wechat-session-1")
+            self.assertEqual(payload["record"]["speaker"], "user")
+            self.assertEqual(payload["record"]["source_agent"], "hermes")
+            self.assertEqual(len(payload["record"]["sha256"]), 64)
+            raw_path = Path(payload["path"])
+            self.assertTrue(raw_path.name.endswith("wechat-session-1.jsonl"))
+            lines = raw_path.read_text(encoding="utf-8").strip().splitlines()
+            self.assertEqual(len(lines), 1)
+            record = json.loads(lines[0])
+            self.assertEqual(record["text"], "原始对话应该完整保存，同时只把提炼版本写入长期记忆。")
 
     def test_add_event_appends_monthly_jsonl_with_required_metadata(self):
         with tempfile.TemporaryDirectory() as td:

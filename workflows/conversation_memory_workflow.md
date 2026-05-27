@@ -9,7 +9,7 @@
 ## Pipeline
 
 ```text
-conversation
+raw conversation capture
   → session summary
   → extracted insights
   → memory classification
@@ -17,6 +17,14 @@ conversation
   → knowledge note update
   → agent context pack refresh
 ```
+
+## Capture and consolidation rhythm
+
+ShiHai uses a hybrid rhythm:
+
+1. **实时轻量捕获**：每条对话先写入 `01_Raw/conversations/<source_agent>/<source_ref>.jsonl`，作为可回溯证据。
+2. **即时候选提炼**：明显长期有价值的偏好、决策、项目原则可立即进入 `pending_memory.jsonl`。
+3. **周期性纯化**：会话结束、每 N 分钟、每日或每周批处理，对 raw log 生成 summary、insight 和 canonical proposal。
 
 ## Memory classification
 
@@ -32,3 +40,5 @@ conversation
 ## Purification principle
 
 不要把聊天流水直接当记忆。先提炼、分类、去重、加来源，再写入长期层。
+
+Raw conversation 和 purified memory 同时保留：raw 用于溯源和重新提炼，purified 用于检索、上下文注入和跨 Agent 共享。

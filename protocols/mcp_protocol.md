@@ -36,6 +36,36 @@ Required arguments:
 }
 ```
 
+### `shihai_add_conversation`
+
+Append a raw conversation message under:
+
+```text
+selves/<SelfName>/01_Raw/conversations/<source_agent>/<source_ref>.jsonl
+```
+
+This stores source evidence only. It does **not** create canonical memory by itself.
+
+Required arguments:
+
+```json
+{
+  "self": "LikeHeng",
+  "source_agent": "hermes",
+  "source_ref": "session-or-message-id",
+  "speaker": "user",
+  "text": "raw conversation text"
+}
+```
+
+Optional arguments:
+
+```json
+{
+  "created_at": "2026-05-26T09:00:00+08:00"
+}
+```
+
 ### `shihai_add_event`
 
 Append a canonical event record under:

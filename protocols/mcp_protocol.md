@@ -101,12 +101,69 @@ Optional arguments:
 }
 ```
 
+### `shihai_list_pending_reviews`
+
+List pending memory proposals still waiting for review.
+
+Required arguments:
+
+```json
+{
+  "self": "LikeHeng"
+}
+```
+
+Returns:
+
+```json
+{
+  "ok": true,
+  "count": 1,
+  "items": []
+}
+```
+
+### `shihai_approve_memory`
+
+Approve a pending memory proposal and append the accepted claim under:
+
+```text
+selves/<SelfName>/03_Canonical/claims/preferences.jsonl
+selves/<SelfName>/03_Canonical/claims/facts.jsonl
+```
+
+Required arguments:
+
+```json
+{
+  "self": "LikeHeng",
+  "proposal_id": "proposal_...",
+  "approved_by": "LikeHeng"
+}
+```
+
+Optional arguments:
+
+```json
+{
+  "created_at": "2026-05-26T09:10:00+08:00"
+}
+```
+
+Approving a proposal also marks its review queue item as:
+
+```json
+{
+  "status": "approved",
+  "needs_review": false,
+  "claim_ref": "claim_..."
+}
+```
+
 ## Future tools
 
 - `shihai_search_memory`
 - `shihai_get_person`
-- `shihai_list_pending_reviews`
-- `shihai_approve_memory`
 - `shihai_export_context_pack`
 
 ## Security and write policy

@@ -242,6 +242,8 @@ python3 tools/shihai_mcp_server.py --root /path/to/ShiHai
 shihai_get_context
 shihai_add_event
 shihai_propose_memory
+shihai_list_pending_reviews
+shihai_approve_memory
 ```
 
 未来的理想关系是：

@@ -82,6 +82,31 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             "additionalProperties": False,
         },
     },
+    {
+        "name": "shihai_list_pending_reviews",
+        "description": "List pending memory proposals awaiting human review.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"self": {"type": "string"}},
+            "required": ["self"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "shihai_approve_memory",
+        "description": "Approve a pending memory proposal into canonical claims.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "self": {"type": "string"},
+                "proposal_id": {"type": "string"},
+                "approved_by": {"type": "string"},
+                "created_at": {"type": "string"},
+            },
+            "required": ["self", "proposal_id", "approved_by"],
+            "additionalProperties": False,
+        },
+    },
 ]
 
 
@@ -99,6 +124,8 @@ class ShihaiMcpServer:
             "shihai_get_context": self.tool_get_context,
             "shihai_add_event": self.tool_add_event,
             "shihai_propose_memory": self.tool_propose_memory,
+            "shihai_list_pending_reviews": self.tool_list_pending_reviews,
+            "shihai_approve_memory": self.tool_approve_memory,
         }
 
     def serve(self) -> int:
@@ -196,6 +223,22 @@ class ShihaiMcpServer:
             confidence=arguments.get("confidence", 0.9),
         )
         return capture_stdout(shihai_memory.propose_memory, args).strip()
+
+    def tool_list_pending_reviews(self, arguments: dict[str, Any]) -> str:
+        require(arguments, "self")
+        args = SimpleNamespace(root=self.root, self_name=arguments["self"])
+        return capture_stdout(shihai_memory.list_pending_reviews, args).strip()
+
+    def tool_approve_memory(self, arguments: dict[str, Any]) -> str:
+        require(arguments, "self", "proposal_id", "approved_by")
+        args = SimpleNamespace(
+            root=self.root,
+            self_name=arguments["self"],
+            proposal_id=arguments["proposal_id"],
+            approved_by=arguments["approved_by"],
+            created_at=arguments.get("created_at"),
+        )
+        return capture_stdout(shihai_memory.approve_memory, args).strip()
 
     @staticmethod
     def result_response(request_id: Any, result: dict[str, Any]) -> dict[str, Any]:

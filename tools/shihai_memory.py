@@ -44,6 +44,29 @@ def append_jsonl(path: Path, record: dict) -> None:
         fh.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
 
 
+def read_jsonl(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    records = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            records.append(json.loads(line))
+    return records
+
+
+def write_jsonl(path: Path, records: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as fh:
+        for record in records:
+            fh.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+
+
+def claims_file_for_type(base: Path, claim_type: str) -> Path:
+    if claim_type == "preference":
+        return base / "03_Canonical/claims/preferences.jsonl"
+    return base / "03_Canonical/claims/facts.jsonl"
+
+
 def init_self(args: argparse.Namespace) -> int:
     base = self_root(args.root, args.name)
     dirs = [
@@ -166,6 +189,64 @@ def get_context(args: argparse.Namespace) -> int:
     return 0
 
 
+def list_pending_reviews(args: argparse.Namespace) -> int:
+    base = self_root(args.root, args.self_name)
+    pending_file = base / "03_Canonical/review_queue/pending_memory.jsonl"
+    items = [record for record in read_jsonl(pending_file) if record.get("status") == "pending"]
+    print(json.dumps({"ok": True, "count": len(items), "items": items}, ensure_ascii=False))
+    return 0
+
+
+def approve_memory(args: argparse.Namespace) -> int:
+    created = parse_time(args.created_at)
+    base = self_root(args.root, args.self_name)
+    pending_file = base / "03_Canonical/review_queue/pending_memory.jsonl"
+    proposals = read_jsonl(pending_file)
+
+    match_index = -1
+    proposal = None
+    for index, item in enumerate(proposals):
+        if item.get("id") == args.proposal_id:
+            match_index = index
+            proposal = item
+            break
+    if proposal is None:
+        raise SystemExit(f"Proposal not found: {args.proposal_id}")
+    if proposal.get("status") != "pending":
+        raise SystemExit(f"Proposal is not pending: {args.proposal_id}")
+
+    claim_id = "claim_" + created.strftime("%Y%m%d_%H%M%S_") + uuid4().hex[:8]
+    record = {
+        "id": claim_id,
+        "claim": proposal["claim"],
+        "type": proposal["type"],
+        "source_type": proposal.get("source_type", "conversation"),
+        "source_ref": proposal.get("source_ref"),
+        "source_proposal_id": proposal["id"],
+        "confidence": proposal.get("confidence", 0.9),
+        "status": "active",
+        "approved_by": args.approved_by,
+        "approved_at": args.created_at or created.isoformat(timespec="seconds"),
+        "created_by": proposal.get("created_by"),
+        "created_at": args.created_at or created.isoformat(timespec="seconds"),
+    }
+    target_file = claims_file_for_type(base, proposal["type"])
+    append_jsonl(target_file, record)
+
+    proposals[match_index] = {
+        **proposal,
+        "status": "approved",
+        "needs_review": False,
+        "approved_by": args.approved_by,
+        "approved_at": args.created_at or created.isoformat(timespec="seconds"),
+        "claim_ref": record["id"],
+    }
+    write_jsonl(pending_file, proposals)
+    log_agent_write(base, args.approved_by, "approve-memory", target_file, proposal["claim"], proposal.get("source_ref", ""))
+    print(json.dumps({"ok": True, "path": str(target_file), "record": record}, ensure_ascii=False))
+    return 0
+
+
 def log_agent_write(base: Path, agent: str, action: str, target: Path, summary: str, source_ref: str) -> None:
     record = {
         "time": now_iso(),
@@ -218,6 +299,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_ctx = sub.add_parser("get-context", help="Print a self context pack for agents")
     p_ctx.add_argument("--self", dest="self_name", required=True)
     p_ctx.set_defaults(func=get_context)
+
+    p_list = sub.add_parser("list-pending-reviews", help="List pending memory proposals")
+    p_list.add_argument("--self", dest="self_name", required=True)
+    p_list.set_defaults(func=list_pending_reviews)
+
+    p_approve = sub.add_parser("approve-memory", help="Approve a pending memory proposal into canonical claims")
+    p_approve.add_argument("--self", dest="self_name", required=True)
+    p_approve.add_argument("--proposal-id", required=True)
+    p_approve.add_argument("--approved-by", required=True)
+    p_approve.add_argument("--created-at")
+    p_approve.set_defaults(func=approve_memory)
     return parser
 
 

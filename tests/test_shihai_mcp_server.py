@@ -43,6 +43,8 @@ class ShihaiMcpServerTest(unittest.TestCase):
                     "shihai_get_context",
                     "shihai_add_event",
                     "shihai_propose_memory",
+                    "shihai_list_pending_reviews",
+                    "shihai_approve_memory",
                 },
                 tool_names,
             )
@@ -129,6 +131,76 @@ class ShihaiMcpServerTest(unittest.TestCase):
             text = call_response["result"]["content"][0]["text"]
             self.assertIn("# ShiHai Context for TestSelf", text)
             self.assertIn("conversation-first", text)
+
+    def test_tool_call_list_pending_reviews_and_approve_memory(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp_root = Path(td)
+            subprocess.run(
+                [sys.executable, str(ROOT / "tools" / "shihai_memory.py"), "--root", str(tmp_root), "init-self", "TestSelf"],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            proposal = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "tools" / "shihai_memory.py"),
+                    "--root", str(tmp_root),
+                    "propose-memory",
+                    "--self", "TestSelf",
+                    "--claim", "用户偏好中文交流",
+                    "--claim-type", "preference",
+                    "--source-agent", "hermes",
+                    "--source-ref", "mcp-review-test",
+                    "--created-at", "2026-05-26T08:05:00+08:00",
+                ],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            proposal_id = json.loads(proposal.stdout)["record"]["id"]
+
+            result = self.run_mcp_session(
+                tmp_root,
+                [
+                    {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 2,
+                        "method": "tools/call",
+                        "params": {"name": "shihai_list_pending_reviews", "arguments": {"self": "TestSelf"}},
+                    },
+                    {
+                        "jsonrpc": "2.0",
+                        "id": 3,
+                        "method": "tools/call",
+                        "params": {
+                            "name": "shihai_approve_memory",
+                            "arguments": {
+                                "self": "TestSelf",
+                                "proposal_id": proposal_id,
+                                "approved_by": "LikeHeng",
+                                "created_at": "2026-05-26T08:10:00+08:00",
+                            },
+                        },
+                    },
+                ],
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            responses = self.read_json_lines(result.stdout)
+            list_response = next(item for item in responses if item.get("id") == 2)
+            listed = json.loads(list_response["result"]["content"][0]["text"])
+            self.assertEqual(listed["count"], 1)
+            self.assertEqual(listed["items"][0]["id"], proposal_id)
+
+            approve_response = next(item for item in responses if item.get("id") == 3)
+            approved = json.loads(approve_response["result"]["content"][0]["text"])
+            self.assertTrue(approved["ok"])
+            self.assertEqual(approved["record"]["source_proposal_id"], proposal_id)
+            self.assertEqual(approved["record"]["approved_by"], "LikeHeng")
 
 
 if __name__ == "__main__":

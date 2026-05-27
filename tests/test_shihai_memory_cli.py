@@ -101,6 +101,83 @@ class ShihaiMemoryCliTest(unittest.TestCase):
             self.assertIn("name: TestSelf", result.stdout)
             self.assertIn("conversation-first memory", result.stdout)
 
+    def test_list_pending_reviews_returns_pending_items_only(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp_path = Path(td)
+            self.run_cli(tmp_path, "init-self", "TestSelf")
+            self.run_cli(
+                tmp_path,
+                "propose-memory",
+                "--self", "TestSelf",
+                "--claim", "用户希望通过持续对话沉淀个人记忆",
+                "--claim-type", "preference",
+                "--source-agent", "hermes",
+                "--source-ref", "test-session",
+                "--created-at", "2026-05-26T08:05:00+08:00",
+            )
+            pending_file = tmp_path / "selves" / "TestSelf" / "03_Canonical" / "review_queue" / "pending_memory.jsonl"
+            approved = {
+                "id": "proposal_approved",
+                "claim": "已批准的旧记忆",
+                "type": "fact",
+                "status": "approved",
+                "created_at": "2026-05-26T08:01:00+08:00",
+            }
+            with pending_file.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(approved, ensure_ascii=False) + "\n")
+
+            result = self.run_cli(tmp_path, "list-pending-reviews", "--self", "TestSelf")
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertTrue(payload["ok"])
+            self.assertEqual(payload["count"], 1)
+            self.assertEqual(payload["items"][0]["claim"], "用户希望通过持续对话沉淀个人记忆")
+            self.assertEqual(payload["items"][0]["status"], "pending")
+
+    def test_approve_memory_moves_pending_item_to_claims_and_marks_approved(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp_path = Path(td)
+            self.run_cli(tmp_path, "init-self", "TestSelf")
+            proposal = self.run_cli(
+                tmp_path,
+                "propose-memory",
+                "--self", "TestSelf",
+                "--claim", "用户偏好中文交流",
+                "--claim-type", "preference",
+                "--source-agent", "hermes",
+                "--source-ref", "test-session",
+                "--created-at", "2026-05-26T08:05:00+08:00",
+            )
+            proposal_id = json.loads(proposal.stdout)["record"]["id"]
+
+            result = self.run_cli(
+                tmp_path,
+                "approve-memory",
+                "--self", "TestSelf",
+                "--proposal-id", proposal_id,
+                "--approved-by", "LikeHeng",
+                "--created-at", "2026-05-26T08:10:00+08:00",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertTrue(payload["ok"])
+            self.assertEqual(payload["record"]["claim"], "用户偏好中文交流")
+            self.assertEqual(payload["record"]["status"], "active")
+            self.assertEqual(payload["record"]["approved_by"], "LikeHeng")
+            self.assertTrue(Path(payload["path"]).name.endswith("preferences.jsonl"))
+
+            claims_file = tmp_path / "selves" / "TestSelf" / "03_Canonical" / "claims" / "preferences.jsonl"
+            claims = [json.loads(line) for line in claims_file.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(len(claims), 1)
+            self.assertEqual(claims[0]["source_proposal_id"], proposal_id)
+
+            pending_file = tmp_path / "selves" / "TestSelf" / "03_Canonical" / "review_queue" / "pending_memory.jsonl"
+            proposals = [json.loads(line) for line in pending_file.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(proposals[0]["status"], "approved")
+            self.assertFalse(proposals[0]["needs_review"])
+
 
 if __name__ == "__main__":
     unittest.main()
